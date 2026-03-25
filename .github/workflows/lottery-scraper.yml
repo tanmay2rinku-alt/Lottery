@@ -29,7 +29,8 @@ jobs:
         SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
         SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
       run: |
-        python automated_scraper.py --once --headless
+        # Using the new 6-pipeline automated scraper
+        python automated_scraper_v2.py --once
 
     - name: Upload logs
       if: always()
