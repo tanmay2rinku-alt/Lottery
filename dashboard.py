@@ -11,8 +11,8 @@ from datetime import datetime
 import json
 import os
 
-# Import Supabase
 from supabase_client import SupabaseClient
+from university_math import UniversityMathEngine
 from config import SUPABASE_URL, SUPABASE_KEY
 
 class LotteryDashboard:
@@ -25,21 +25,15 @@ class LotteryDashboard:
         self.db = SupabaseClient(url=SUPABASE_URL, key=SUPABASE_KEY)
     
     def _fetch_supabase_data(self):
-        """Fetch all necessary data from Supabase"""
         try:
-            # Winning Numbers
-            winners = self.db.supabase.table('winning_numbers').select('*').order('draw_date', desc=True).limit(100).execute().data
+            winners = self.db.supabase.table('winning_numbers').select('*').order('draw_date', desc=True).limit(500).execute().data
             df_winners = pd.DataFrame(winners)
+            analysis = self.db.supabase.table('analysis_results').select('*').order('created_at', desc=True).limit(5).execute().data
             
-            # Latest Analysis Results
-            analysis = self.db.supabase.table('analysis_results').select('*').order('created_at', desc=True).limit(10).execute().data
-            
-            # Map analysis results by type
             analysis_map = {}
             for item in analysis:
                 a_type = item['analysis_type']
                 if a_type not in analysis_map:
-                    # Sync with corrected column name: results_json
                     res = item.get('results_json')
                     if isinstance(res, str):
                         try: res = json.loads(res)
@@ -63,7 +57,7 @@ class LotteryDashboard:
         if not data: return
 
         # Tabs
-        tab1, tab2, tab3 = st.tabs(["📊 Market Overview", "🎓 University Math", "🤝 Guru Consensus"])
+        tab1, tab2, tab3, tab4 = st.tabs(["📊 Market Overview", "🎓 University Math", "🤝 Guru Consensus", "🔮 Smart Predictor"])
 
         with tab1:
             col1, col2, col3 = st.columns(3)
@@ -83,21 +77,16 @@ class LotteryDashboard:
                 c1, c2, c3 = st.columns(3)
                 with c1:
                     st.subheader("Monte Carlo Simulation")
-                    st.info("10,000 future draw iterations performed.")
                     picks = math_data.get('monte_carlo', {}).get('top_simulated_picks', [])
                     st.success(f"Top 5 Projected: {', '.join(map(str, picks[:5]))}")
-                
                 with c2:
                     st.subheader("Poisson Arrival Rate")
                     p_data = math_data.get('poisson', {})
-                    st.metric("Arrival Lambda (λ)", f"{p_data.get('expected_lambda', 0):.2f}")
-                    st.write("Status: **" + ("HOT" if p_data.get('is_hot') else "STABLE") + "**")
-                
+                    st.metric("Repeat Probability", f"{p_data.get('prob_of_repeat', 0)*100:.1f}%")
                 with c3:
                     st.subheader("Chi-Squared Test")
                     chi = math_data.get('chi_squared', {})
-                    st.metric("P-Value", f"{chi.get('p_value', 0):.4f}")
-                    st.warning(chi.get('interpretation', 'Statistically Random'))
+                    st.info(chi.get('interpretation', 'Statistically Random'))
             else:
                 st.warning("Run the Orchestrator to generate University Math data.")
 
@@ -108,21 +97,35 @@ class LotteryDashboard:
                 consensus = sentiment.get('math_consensus', [])
                 if consensus:
                     st.success(f"🔥 **CONSENSUS MATCH FOUND**: {', '.join(map(str, consensus))}")
-                else:
-                    st.warning("No direct overlap between Guru trend and University Math picks.")
-                
-                # Consensus Meter
                 alignment = sentiment.get('comparison_with_math', {}).get('alignment_score', 0)
-                st.write(f"**Alignment Score**: {alignment:.1f}%")
                 st.progress(alignment / 100)
-                
-                st.subheader("Guru Picks from YouTube")
-                guru_preds = sentiment.get('guru_predictions', {})
-                if isinstance(guru_preds, dict):
-                    for title, nums in guru_preds.items():
-                        st.write(f"• *{title}*: {', '.join(map(str, nums))}")
             else:
                 st.warning("Run the Orchestrator to capture Sentiment Consensus.")
+
+        with tab4:
+            st.header("🔮 Smart Individual Predictor")
+            st.markdown("Enter any number to analyze its probability against historical patterns.")
+            
+            input_num = st.number_input("Target Number", min_value=0, max_value=99999, value=12345)
+            if st.button("Generate Intelligence Report"):
+                if not data['winners'].empty:
+                    engine = UniversityMathEngine(data['winners']['number'].tolist())
+                    prediction = engine.predict_top_5_for_number(int(input_num))
+                    
+                    st.divider()
+                    col_a, col_b = st.columns(2)
+                    with col_a:
+                        st.subheader("Probability Score")
+                        st.title(f"{prediction['score']}%")
+                        st.progress(prediction['score'] / 100)
+                    
+                    with col_b:
+                        st.subheader("Related Top 5 Picks")
+                        st.success(f"**{', '.join(map(str, prediction['top_5']))}**")
+                    
+                    st.info(f"Analysis: Number {input_num} belongs to series **{prediction.get('series', 'NA')}**. Based on {prediction.get('occurrences_in_series', 0)} historical hits in this cluster.")
+                else:
+                    st.error("No historical data found in database to run prediction.")
 
 if __name__ == "__main__":
     dashboard = LotteryDashboard()
