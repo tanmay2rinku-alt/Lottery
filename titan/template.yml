@@ -1,0 +1,157 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Description: PROJECT TITAN - ML Predictions and Automated Scraping as serverless Lambda
+
+Parameters:
+  SupabaseUrl:
+    Type: String
+    Description: Supabase project URL
+    Default: https://your-project.supabase.co
+  SupabaseKey:
+    Type: String
+    Description: Supabase service role key
+    Default: your-supabase-key
+
+Globals:
+  Function:
+    Timeout: 900
+    MemorySize: 3008
+    Runtime: python3.11
+    Handler: index.lambda_handler
+    CodeUri: .
+
+Resources:
+  # Lambda Function - ML Predictions
+  ProjectTitanMLFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: ProjectTitanML
+      Description: ML prediction pipeline for lottery numbers
+      
+      # Code
+      CodeUri: .
+      Handler: ml_engine_lambda.lambda_handler
+      Runtime: python3.11
+      
+      # Configuration
+      Timeout: 900  # 15 minutes
+      MemorySize: 3008  # Max memory
+      EphemeralStorage:
+        Size: 10240  # 10GB scratch space
+      
+      # Environment
+      Environment:
+        Variables:
+          SUPABASE_URL: !Ref SupabaseUrl
+          SUPABASE_KEY: !Ref SupabaseKey
+          PYTHONPATH: /var/task
+      
+      # Logging
+      LoggingConfig:
+        LogFormat: JSON
+      
+      # API Gateway trigger
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            Path: /predict
+            Method: POST
+
+  # Lambda Function - Automated Scraper
+  LotteryScraperFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: LotteryScraper
+      Description: Automated lottery data scraping and storage
+      
+      # Code
+      CodeUri: .
+      Handler: scraper_lambda.lambda_handler
+      Runtime: python3.11
+      
+      # Configuration
+      Timeout: 900  # 15 minutes (for full scraping)
+      MemorySize: 2048  # 2GB memory
+      EphemeralStorage:
+        Size: 5120  # 5GB scratch space
+      
+      # Environment
+      Environment:
+        Variables:
+          SUPABASE_URL: !Ref SupabaseUrl
+          SUPABASE_KEY: !Ref SupabaseKey
+          PYTHONPATH: /var/task
+      
+      # Logging
+      LoggingConfig:
+        LogFormat: JSON
+      
+      # CloudWatch scheduled trigger (every 2 hours)
+      Events:
+        ScheduleEvent:
+          Type: Schedule
+          Properties:
+            Schedule: rate(2 hours)
+            Description: Run lottery scraper every 2 hours
+            RestApiId: !Ref ApiGateway
+
+  # API Gateway
+  ApiGateway:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: ProjectTitanMLAPI
+      Description: API for PROJECT TITAN ML predictions
+      EndpointConfiguration:
+        Types:
+          - REGIONAL
+
+  # CloudWatch Log Group
+  LogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${ProjectTitanMLFunction}'
+      RetentionInDays: 30
+
+  # CloudWatch Alarm
+  ErrorAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: ProjectTitanMLErrors
+      AlarmDescription: Alert on Lambda errors
+      MetricName: Errors
+      Namespace: AWS/Lambda
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref ProjectTitanMLFunction
+
+Parameters:
+  SupabaseUrl:
+    Type: String
+    Description: Supabase project URL
+    Default: https://your-project.supabase.co
+
+  SupabaseKey:
+    Type: String
+    Description: Supabase API key
+    NoEcho: true
+    Default: your-anon-key
+
+Outputs:
+  LambdaFunctionArn:
+    Description: ARN of Lambda function
+    Value: !GetAtt ProjectTitanMLFunction.Arn
+
+  ApiEndpoint:
+    Description: API Gateway endpoint
+    Value: !Sub 'https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/prod'
+
+  LogGroup:
+    Description: CloudWatch Log Group
+    Value: !Ref LogGroup

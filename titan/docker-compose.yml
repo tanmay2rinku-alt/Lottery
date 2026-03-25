@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  # Lambda runtime for local testing
+  lambda:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: titan-lambda-local
+    ports:
+      - "9000:8080"  # Lambda runtime
+    environment:
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_KEY=${SUPABASE_KEY}
+      - AWS_LAMBDA_LOG_TYPE=Tail
+    volumes:
+      - .:/var/task
+    command: ml_engine_lambda.lambda_handler
+
+  # Local DynamoDB for testing (optional)
+  dynamodb:
+    image: amazon/dynamodb-local:latest
+    container_name: titan-dynamodb-local
+    ports:
+      - "8000:8000"
+    command: -jar DynamoDBLocal.jar -sharedDb
+
+  # LocalStack for AWS services (optional)
+  localstack:
+    image: localstack/localstack:latest
+    container_name: titan-localstack
+    ports:
+      - "4566:4566"  # All AWS services
+    environment:
+      - DEBUG=1
+      - SERVICES=lambda,apigateway,logs,cloudwatch
+      - AWS_DEFAULT_REGION=us-east-1
+      - AWS_ACCESS_KEY_ID=testing
+      - AWS_SECRET_ACCESS_KEY=testing
+
+  # PostgreSQL (to test Supabase locally - optional)
+  postgres:
+    image: postgres:15-alpine
+    container_name: titan-postgres-local
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
+
+networks:
+  default:
+    name: titan-network

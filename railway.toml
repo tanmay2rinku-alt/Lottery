@@ -1,0 +1,19 @@
+# Railway Configuration
+# Free tier: 512MB RAM, 1GB disk, cron jobs
+
+[build]
+builder = "python"
+
+[deploy]
+startCommand = "python health_check.py"
+healthcheckPath = "/health"
+restartPolicyType = "ON_FAILURE"
+
+[environments]
+SUPABASE_URL = "your-supabase-url"
+SUPABASE_KEY = "your-supabase-key"
+
+# Cron schedule (Railway supports cron expressions)
+[cron]
+schedule = "0 */2 * * *"  # Every 2 hours
+command = "python automated_scraper.py --once --headless"

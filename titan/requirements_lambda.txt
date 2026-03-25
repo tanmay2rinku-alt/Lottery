@@ -1,0 +1,23 @@
+# PROJECT TITAN - AWS Lambda Dependencies
+# These packages are optimized for AWS Lambda runtime
+# Total size must be < 50MB for direct upload, < 250MB for S3 layer
+
+pandas==2.0.3
+numpy==1.24.3
+scikit-learn==1.3.0
+python-dotenv==1.0.0
+requests==2.31.0
+
+# Supabase client
+supabase>=2.0.2,<3.0.0
+
+# PDF processing
+PyPDF2==3.0.1
+
+# OCR (optional, for scanned PDFs)
+# pytesseract==0.3.10
+# Note: Tesseract binary not included - requires custom Lambda layer
+
+# Selenium/Chrome (NOT recommended for Lambda - use API-based scraping instead)
+# undetected-chromedriver requires Chrome/Chromium binary
+# Consider using requests + BeautifulSoup for simpler scraping

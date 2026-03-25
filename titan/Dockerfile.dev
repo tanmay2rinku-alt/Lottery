@@ -1,0 +1,28 @@
+# Dockerfile for local AWS Lambda development
+# Tests Lambda code locally with AWS Lambda runtime
+
+FROM public.ecr.aws/lambda/python:3.11
+
+# Copy Python dependencies
+COPY requirements_lambda.txt ${LAMBDA_TASK_ROOT}/
+
+# Install Python dependencies
+RUN pip install -r ${LAMBDA_TASK_ROOT}/requirements_lambda.txt --target "${LAMBDA_TASK_ROOT}"
+
+# Copy handler
+COPY ml_engine_lambda.py ${LAMBDA_TASK_ROOT}/index.py
+
+# Copy ML pipeline modules
+COPY database_supabase.py ${LAMBDA_TASK_ROOT}/
+COPY feature_engineering.py ${LAMBDA_TASK_ROOT}/
+COPY ml_engine.py ${LAMBDA_TASK_ROOT}/
+COPY monte_carlo.py ${LAMBDA_TASK_ROOT}/
+COPY markov_engine.py ${LAMBDA_TASK_ROOT}/
+COPY filter_constraints.py ${LAMBDA_TASK_ROOT}/
+COPY backtester.py ${LAMBDA_TASK_ROOT}/
+
+# Copy .env for local testing
+COPY .env ${LAMBDA_TASK_ROOT}/ || true
+
+# Set the CMD to your handler
+CMD ["index.lambda_handler"]

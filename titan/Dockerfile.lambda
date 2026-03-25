@@ -1,0 +1,17 @@
+# Dockerfile for AWS Lambda Custom Runtime
+# Use if deployment ZIP exceeds 50MB limit
+
+FROM public.ecr.aws/lambda/python:3.11
+
+# Copy requirements
+COPY requirements_lambda.txt ${LAMBDA_TASK_ROOT}/
+
+# Install dependencies
+RUN pip install -r ${LAMBDA_TASK_ROOT}/requirements_lambda.txt
+
+# Copy handler
+COPY ml_engine_lambda.py ${LAMBDA_TASK_ROOT}/index.py
+COPY *.py ${LAMBDA_TASK_ROOT}/
+
+# Set handler
+CMD ["index.lambda_handler"]

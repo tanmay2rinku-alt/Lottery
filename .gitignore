@@ -1,0 +1,88 @@
+# Credentials & Secrets
+credentials.json
+*.key
+.env
+.env.local
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environments
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs & Output
+*.log
+logs/
+lottery_intelligence.log
+
+# Data Files
+pdf_archive/
+results/
+debug/
+*.csv
+*.json
+!credentials.json.example
+
+# Browser Cache
+chromedriver
+chrome-data/
+.chrome-profile/
+
+# Temporary Files
+*.tmp
+*.temp
+tmp/
+temp/
+
+# OS Files
+Thumbs.db
+.Thumbs.db
+.DS_Store
+
+# Test Coverage
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Type Checking
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Test Results
+*.xml
+test-results/
